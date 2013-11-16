@@ -1,5 +1,14 @@
 <resources>
 
     <color name="black_overlay">#66000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="red">#FF0000</color>
+    <color name="black">#000000</color>
+    <color name="button_red">#FF2D2D</color>
+    <color name="button_green">#0F0</color>
+    <color name="button_blue">#088DA5</color>
+    <color name="dark_gray">#31312E</color>
+    <color name="light_blue">#00CCFF</color>
+    <color name="light_gray">#FFD3D3D3</color>
 
 </resources>
