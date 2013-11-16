@@ -15,19 +15,32 @@ import android.graphics.Path;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.LinearLayout;
 
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import hacktx.captionthat.util.SoundRecord;
 
@@ -35,6 +48,8 @@ public class Draw extends Activity {
     DrawingView dv;
     private Paint mPaint;
     private float startX, startY, endY, endX;
+    List<SoundRecord> records = new ArrayList<SoundRecord>();
+    Bitmap bitmap;
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
@@ -45,8 +60,8 @@ public class Draw extends Activity {
         ((LinearLayout)findViewById(R.id.activityDraw)).addView(dv);
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            Bitmap b = BitmapMemoryManagement.decodeBitmapFromFile(extras.getString("path"), this);
-            Drawable d = new BitmapDrawable(getResources(), b);
+            bitmap = BitmapMemoryManagement.decodeBitmapFromFile(extras.getString("path"), this);
+            Drawable d = new BitmapDrawable(getResources(), bitmap);
             dv.setBackground(d);
         }
         mPaint = new Paint();
@@ -194,7 +209,6 @@ public class Draw extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_OK) return;
 
-        ArrayList<SoundRecord> SoundList = new ArrayList<SoundRecord>();
 
         if (requestCode == PICK_FROM_FILE) {
             mSoundCaptureUri = data.getData();
@@ -210,7 +224,7 @@ public class Draw extends Activity {
                 double maxX = Math.max(startX, endX);
                 double maxY = Math.max(startY, endY);
                 SoundRecord rec = new SoundRecord(minX, minY, maxX, maxY, soundPath);
-                SoundList.add(rec);
+                records.add(rec);
             }
         } else if (requestCode == PICK_FROM_RECORDER) {
             soundPath = mSoundCaptureUri.getPath();
@@ -220,9 +234,6 @@ public class Draw extends Activity {
             soundPath = null;
         }
 
-        Button b = new Button(this);
-        b.setText("Done");
-        ((LinearLayout)findViewById(R.id.activityDraw)).addView(b);
     }
 
     @SuppressWarnings("deprecation")
@@ -233,6 +244,104 @@ public class Draw extends Activity {
         int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
         cursor.moveToFirst();
         return cursor.getString(column_index);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.draw_menu, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.done:
+                System.out.println("Pressed done");
+                new RetreiveFeedTask(bitmap, records).execute();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+}
+
+class RetreiveFeedTask extends AsyncTask<String, Void, Integer> {
+
+    private Exception exception;
+    Bitmap bitmap;
+    List<SoundRecord> recs;
+
+    protected Integer doInBackground(String... urls) {
+        try {
+            uploadNewImageBitmap();
+        } catch (Exception e) {
+            this.exception = e;
+        }finally {
+            return 1;
+        }
+    }
+
+    protected void onPostExecute(Integer feed) {
+        System.out.println("Got to onPostExecute");
+        // TODO: check this.exception
+        // TODO: do something with the feed
+    }
+
+    public RetreiveFeedTask (Bitmap b, List<SoundRecord> r){
+        bitmap = b;
+        recs = r;
+    }
+
+    public Boolean uploadNewImageBitmap() throws JSONException, IOException {
+        Boolean success = true;
+        JSONObject obj = DataConversion.constructPictureJson(bitmap);
+        int i = 0;
+        for(SoundRecord rec : recs){
+            JSONObject obje = new JSONObject();
+            obje.put("sound", DataConversion.constructAudioString(rec.path));
+            obje.put("tx", rec.minX);
+            obje.put("ty", rec.minY);
+            obje.put("bx", rec.maxX);
+            obje.put("by", rec.maxY);
+            obj.accumulate("sounds", obje);
+            System.out.println("JSON Record object: " + i + " :  " + obje.toString());
+            int len = obj.toString().length();
+            for(int im = 0; im < len; im += 100)
+                System.out.println("JSON Complete object: " + i+im + " :  " + obj.toString().substring(im, Math.min(im+100, len)));
+        }
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+        System.out.println("Step 1 WHOO HOO!!! BANANA");
+        System.out.println("obj: " + obj.toString());
+        System.out.println("Step 2 WHOO HOO!!! BANANA");
+        ResponseHandler<String> responseHandler = new BasicResponseHandler();
+        System.out.println("Step 3 WHOO HOO!!! BANANA");
+        final String NEW_IMAGE_URL = "http://captionthat.herokuapp.com/images.json"; // TODO: Make this a public variable.
+        System.out.println("Step 4 WHOO HOO!!! BANANA");
+        HttpPost postMethod = new HttpPost(NEW_IMAGE_URL);
+        System.out.println("Step 5 WHOO HOO!!! BANANA");
+        postMethod.setEntity(new StringEntity(obj.toString()));
+        System.out.println("Step 6 WHOO HOO!!! BANANA");
+        postMethod.setHeader("Accept", "application/json");
+        System.out.println("Step 7 WHOO HOO!!! BANANA");
+        postMethod.setHeader("Content-type", "application/json");
+        System.out.println("Step 8 WHOO HOO!!! BANANA");
+        postMethod.setHeader("Data-type", "json");
+        System.out.println("Step 9 WHOO HOO!!! BANANA");
+        try{
+            System.out.println("Step 10 WHOO HOO!!! BANANA");
+            httpClient.execute(postMethod, responseHandler);
+            System.out.println("Step 11 WHOO HOO!!! BANANA");
+        } catch (org.apache.http.client.HttpResponseException error){
+            Log.d("Uploader Class Error", "Error code: " + error.getStatusCode());
+            Log.d("Uploader Class Error", "Error message: " + error.getMessage());
+            success = false;
+        }
+        //Log.d("server resposne", response);
+        System.out.println("Success:  " + success);
+        return success;
     }
 
 }

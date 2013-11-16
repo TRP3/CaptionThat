@@ -5,7 +5,7 @@ package hacktx.captionthat.util;
  */
 public class SoundRecord {
     public double minX, minY, maxX, maxY;
-    String path;
+    public String path;
 
     public SoundRecord(double minX, double minY, double maxX, double maxY, String path){ //TODO
         this.minX = minX;

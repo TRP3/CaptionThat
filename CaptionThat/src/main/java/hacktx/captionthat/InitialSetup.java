@@ -2,24 +2,20 @@ package hacktx.captionthat;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -34,8 +30,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import hacktx.captionthat.util.SoundRecord;
@@ -244,30 +238,30 @@ public class InitialSetup extends Activity {
 		return true;
 	}
 
-    private void addImages(){
-        WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int dim = Math.min(size.x, size.y);
-        int numPics = (int)Math.ceil(size.x*2/(float)dim);
-
-
-
-        Iterator<Pair> iter ;  // TODO obtain collection of "Pair"s that contain a list of addresses, bitmaps, and SoundRecords
-
-
-        Bitmap image1;
-        while (iter.hasNext()){
-            List<Pair> list = new ArrayList<Pair>();
-            for(int i = 0; i < numPics; i++){
-                if(iter.hasNext()){
-                    list.add(iter.next());
-                }
-            }
-            addLine(list, size.x);
-        }
-    }
+//    private void addImages(){
+//        WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+//        Display display = wm.getDefaultDisplay();
+//        Point size = new Point();
+//        display.getSize(size);
+//        int dim = Math.min(size.x, size.y);
+//        int numPics = (int)Math.ceil(size.x*2/(float)dim);
+//
+//
+//
+//        Iterator<Pair> iter ;  // TODO obtain collection of "Pair"s that contain a list of addresses, bitmaps, and SoundRecords
+//
+//
+//        Bitmap image1;
+//        while (iter.hasNext()){
+//            List<Pair> list = new ArrayList<Pair>();
+//            for(int i = 0; i < numPics; i++){
+//                if(iter.hasNext()){
+//                    list.add(iter.next());
+//                }
+//            }
+//            addLine(list, size.x);
+//        }
+//    }
 
     private void addLine(List<Pair> imageList, int width){
         LinearLayout buttonLayout = new LinearLayout(this);
