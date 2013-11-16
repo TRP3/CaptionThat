@@ -48,7 +48,7 @@ public class InitialSetup extends Activity {
 		
 		Log.d("InitialSetup", "onCreate");
 		
-		setContentView(R.layout.activity_fullscreen);
+		setContentView(R.layout.choose_picture);
 		
 		//browse for picture
 		browseForPicture();
@@ -110,12 +110,12 @@ public class InitialSetup extends Activity {
 		final AlertDialog dialog = builder.create();
 		
 		mImageView = (ImageView) findViewById(R.id.chosenPicture);
-		//FIXME
 
 		((Button) findViewById(R.id.browse_button)).setOnClickListener(new
 				View.OnClickListener() {			
 			@Override
 			public void onClick(View v) {
+                findViewById(R.id.browse_button).setVisibility(View.GONE);
 				dialog.show();
 			}
 		});
