@@ -21,11 +21,15 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPost;
@@ -49,15 +53,28 @@ public class InitialSetup extends Activity {
 	private static final int PICK_FROM_FILE = 2;
 	private static final int DEFAULT_IMAGE = 3;
 	Bitmap bitmap = null;
-	
+    AlertDialog dialog;
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.browser:
+                dialog.show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+        setContentView(R.layout.choose_picture);
+
 		Log.d("InitialSetup", "onCreate");
 		
-		setContentView(R.layout.choose_picture);
-		
+
 		//browse for picture
 		browseForPicture();
 	}
@@ -115,16 +132,16 @@ public class InitialSetup extends Activity {
 			}
 		} );
 		
-		final AlertDialog dialog = builder.create();
+		dialog = builder.create();
 
-		((Button) findViewById(R.id.browse_button)).setOnClickListener(new
-				View.OnClickListener() {			
-			@Override
-			public void onClick(View v) {
-                findViewById(R.id.browse_button).setVisibility(View.GONE);
-				dialog.show();
-			}
-		});
+//		((Button) findViewById(R.id.browse_button)).setOnClickListener(new
+//				View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//                findViewById(R.id.browse_button).setVisibility(View.GONE);
+//				dialog.show();
+//			}
+//		});
 	}
 	
 	@Override
