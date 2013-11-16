@@ -1,27 +1,46 @@
 package hacktx.captionthat;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.view.ContextThemeWrapper;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
+
+import java.io.File;
+import java.util.ArrayList;
+
+import hacktx.captionthat.util.SoundRecord;
 
 public class Draw extends Activity {
-    DrawingView dv ;
+    DrawingView dv;
     private Paint mPaint;
-
+    private float startX, startY, endY, endX;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_draw);
         dv = new DrawingView(this);
-        setContentView(dv);
+        setContentView(R.layout.activity_draw);
+        ((LinearLayout)findViewById(R.id.activityDraw)).addView(dv);
+        // TODO
         // Drawable d = new BitmapDrawable(getResources(),bitmap);
         // dv.setBackground(d);
         mPaint = new Paint();
@@ -35,8 +54,7 @@ public class Draw extends Activity {
     }
 
     public class DrawingView extends View {
-        private Bitmap  mBitmap;
-        private Canvas  mCanvas;
+        private Bitmap mBitmap;
         private Path mPath;
         private Paint   mBitmapPaint;
         Context context;
@@ -55,20 +73,16 @@ public class Draw extends Activity {
             circlePaint.setStyle(Paint.Style.STROKE);
             circlePaint.setStrokeJoin(Paint.Join.MITER);
             circlePaint.setStrokeWidth(4f);
-
-
         }
 
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
             super.onSizeChanged(w, h, oldw, oldh);
-
-            mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            mCanvas = new Canvas(mBitmap);
-
+            if (w > 0 && h > 0) {
+                mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            }
         }
 
-        float startX, startY, endX, endY;
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
@@ -79,39 +93,22 @@ public class Draw extends Activity {
                             Math.max(startY, endY), mPaint);
         }
 
-        private float mX, mY;
         private static final float TOUCH_TOLERANCE = 4;
 
         private void touch_start(float x, float y) {
-         /*   mPath.reset();
-            mPath.moveTo(x, y);
-            mX = x;
-            mY = y; */
             startX = endX = x;
             startY = endY = y;
         }
         private void touch_move(float x, float y) {
-            float dx = Math.abs(x - mX);
-            float dy = Math.abs(y - mY);
+            float dx = Math.abs(x - startX);
+            float dy = Math.abs(y - startY);
             if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-             /*   mPath.quadTo(mX, mY, (x + mX)/2, (y + mY)/2);
-                mX = x;
-                mY = y; */
                 endX = x;
                 endY = y;
-               /*
-                circlePath.reset();
-                circlePath.addCircle(mX, mY, 30, Path.Direction.CW);
-                */
             }
         }
         private void touch_up() {
-          /*  mPath.lineTo(mX, mY);
-            circlePath.reset();
-            // commit the path to our offscreen
-            mCanvas.drawPath(mPath,  mPaint);
-            // kill this so we don't double draw
-            mPath.reset(); */
+            browseForSound();
         }
 
         @Override
@@ -136,4 +133,101 @@ public class Draw extends Activity {
             return true;
         }
     }
+
+    private String soundPath;
+
+    //sound stuff
+    private Uri mSoundCaptureUri;
+    private static final int PICK_FROM_RECORDER = 1;
+    private static final int PICK_FROM_FILE = 2;
+
+    private void browseForSound() {
+        final String [] items = new String [] {"New Recording", "Existing Recording"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<String> (this,
+                R.layout.list_item, items);
+        AlertDialog.Builder builder	= new AlertDialog.Builder(
+                new ContextThemeWrapper(this, R.style.AlertDialogCustom));
+
+        builder.setTitle("Select Sound");
+        builder.setAdapter(adapter, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int item) {
+                if (item == 0) {
+                    Intent intent = new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+                    File file = new File(Environment.getExternalStorageDirectory(),
+                            "tmp_sound_" + String.valueOf
+                                    (System.currentTimeMillis()) + ".wav");
+                    mSoundCaptureUri = Uri.fromFile(file);
+
+                    try {
+                        intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT,
+                                mSoundCaptureUri);
+                        intent.putExtra("return-data", true);
+
+                        startActivityForResult(intent, PICK_FROM_RECORDER);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    dialog.cancel();
+                } else if (item == 1) {
+                    Intent intent = new Intent();
+
+                    intent.setType("audio/*");
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+
+                    startActivityForResult(Intent.createChooser(intent,
+                            "Complete action using"), PICK_FROM_FILE);
+                }
+            }
+        } );
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode != RESULT_OK) return;
+
+        SoundPool sp = new SoundPool(3, AudioManager.STREAM_MUSIC, 0);
+        ArrayList<SoundRecord> SoundList = new ArrayList<SoundRecord>();
+
+        if (requestCode == PICK_FROM_FILE) {
+            mSoundCaptureUri = data.getData();
+            soundPath = getRealPathFromURI(mSoundCaptureUri); //from external apps
+
+            if (soundPath == null)
+                soundPath = mSoundCaptureUri.getPath(); //from File Manager
+
+
+            if (soundPath != null) {
+                double minX = Math.min(startX, endX);
+                double minY = Math.min(startY, endY);
+                double maxX = Math.max(startX, endX);
+                double maxY = Math.max(startY, endY);
+                SoundRecord rec = new SoundRecord(minX, minY, maxX, maxY, soundPath);
+                SoundList.add(rec);
+            }
+        } else if (requestCode == PICK_FROM_RECORDER) {
+            soundPath = mSoundCaptureUri.getPath();
+            // Todo SoundPoool test
+        }
+        else { //default sound
+            soundPath = null;
+        }
+
+        Button b = new Button(this);
+        b.setText("Done");
+        ((LinearLayout)findViewById(R.id.activityDraw)).addView(b);
+    }
+
+    @SuppressWarnings("deprecation")
+    private String getRealPathFromURI(Uri contentUri) {
+        String[] proj = {MediaStore.Audio.Media.DATA};
+        Cursor cursor = managedQuery(contentUri, proj, null, null, null);
+        if (cursor == null) return null;
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }
+
 }
