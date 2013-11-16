@@ -20,11 +20,9 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -35,16 +33,13 @@ import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Display;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -61,6 +56,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import hacktx.captionthat.util.SoundRecord;
 
@@ -228,14 +229,17 @@ public class InitialSetup extends Activity {
 			bitmap = null;
 		}
 		resizeBitmap();
-        try {
+/*        try {
             uploadNewImageBitmap(bitmap);
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        mImageView.setImageBitmap(bitmap);
+        } */
+  //      mImageView.setImageBitmap(bitmap);
+        Intent i = new Intent(getApplicationContext(), Draw.class);
+        i.putExtra("path", teamPicPath);
+        startActivity(i);
 	}
 
     // TODO: Move this to the class that adds sound to the image, and include the sound data.

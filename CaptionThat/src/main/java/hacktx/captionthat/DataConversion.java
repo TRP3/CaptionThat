@@ -2,14 +2,7 @@ package hacktx.captionthat;
 
 import android.graphics.Bitmap;
 import android.util.Base64;
-import android.util.Log;
 
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -33,6 +26,11 @@ public class DataConversion {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
         return stream.toByteArray();
+    }
+
+    public static String constructAudioString(String pathname) throws JSONException, IOException {
+        File f = new File(pathname);
+        return Base64.encodeToString(fileToByteArr(f), Base64.DEFAULT);
     }
 
     /**

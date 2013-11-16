@@ -1,5 +1,6 @@
 package hacktx.captionthat;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -11,9 +12,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.media.AudioManager;
-import android.media.SoundPool;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -34,15 +36,19 @@ public class Draw extends Activity {
     private Paint mPaint;
     private float startX, startY, endY, endX;
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         dv = new DrawingView(this);
         setContentView(R.layout.activity_draw);
         ((LinearLayout)findViewById(R.id.activityDraw)).addView(dv);
-        // TODO
-        // Drawable d = new BitmapDrawable(getResources(),bitmap);
-        // dv.setBackground(d);
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            Bitmap b = BitmapMemoryManagement.decodeBitmapFromFile(extras.getString("path"), this);
+            Drawable d = new BitmapDrawable(getResources(), b);
+            dv.setBackground(d);
+        }
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
@@ -188,7 +194,6 @@ public class Draw extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_OK) return;
 
-        SoundPool sp = new SoundPool(3, AudioManager.STREAM_MUSIC, 0);
         ArrayList<SoundRecord> SoundList = new ArrayList<SoundRecord>();
 
         if (requestCode == PICK_FROM_FILE) {
