@@ -27,6 +27,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class InitialSetup extends Activity {
 	private static final String PREFERENCES = "preferences";
 	public static final String IMAGE_FILENAME = "team_pic.jpg";
@@ -108,8 +116,6 @@ public class InitialSetup extends Activity {
 		} );
 		
 		final AlertDialog dialog = builder.create();
-		
-		mImageView = (ImageView) findViewById(R.id.chosenPicture);
 
 		((Button) findViewById(R.id.browse_button)).setOnClickListener(new
 				View.OnClickListener() {			
@@ -134,18 +140,49 @@ public class InitialSetup extends Activity {
 			
 			if (teamPicPath != null) 
 				bitmap 	= BitmapMemoryManagement
-					.decodeBitmapFromFile(teamPicPath);
+					.decodeBitmapFromFile(teamPicPath, this);
 		} else if (requestCode == PICK_FROM_CAMERA) {
 			teamPicPath	= mImageCaptureUri.getPath();
-			bitmap  = BitmapMemoryManagement.decodeBitmapFromFile(teamPicPath);
+			bitmap  = BitmapMemoryManagement.decodeBitmapFromFile(teamPicPath, this);
 		}
 		else { //default image
 			teamPicPath = null;
 			bitmap = null;
 		}
 		resizeBitmap();
-		mImageView.setImageBitmap(bitmap);
+        try {
+            uploadNewImageBitmap(bitmap);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mImageView.setImageBitmap(bitmap);
 	}
+
+    // TODO: Move this to the class that adds sound to the image, and include the sound data.
+    public Boolean uploadNewImageBitmap(Bitmap bitmap) throws JSONException, IOException {
+        Boolean success = true;
+        JSONObject jsonObject = DataConversion.constructPictureJson(bitmap);
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+
+        ResponseHandler<String> responseHandler = new BasicResponseHandler();
+        final String NEW_IMAGE_URL = "http://captionthat.herokuapp.com/images/new"; // TODO: Make this a public variable.
+        HttpPost postMethod = new HttpPost(NEW_IMAGE_URL);
+        postMethod.setEntity(new StringEntity(jsonObject.toString()));
+        postMethod.setHeader("Accept", "application/json");
+        postMethod.setHeader("Content-type", "application/json");
+        postMethod.setHeader("Data-type", "json");
+        try{
+            httpClient.execute(postMethod, responseHandler);
+        } catch (org.apache.http.client.HttpResponseException error){
+            Log.d("Uploader Class Error", "Error code: "+error.getStatusCode());
+            Log.d("Uploader Class Error", "Error message: " + error.getMessage());
+            success = false;
+        }
+        //Log.d("server resposne", response);
+        return success;
+    }
 	
 	@SuppressWarnings("deprecation")
 	private String getRealPathFromURI(Uri contentUri) {
