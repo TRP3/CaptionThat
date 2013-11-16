@@ -3,6 +3,10 @@ package hacktx.captionthat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -14,21 +18,25 @@ import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.apache.http.client.ResponseHandler;
@@ -38,6 +46,8 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import hacktx.captionthat.util.SoundRecord;
 
 public class InitialSetup extends Activity {
 	private static final String PREFERENCES = "preferences";
@@ -54,6 +64,7 @@ public class InitialSetup extends Activity {
 	private static final int DEFAULT_IMAGE = 3;
 	Bitmap bitmap = null;
     AlertDialog dialog;
+    private int count = 0; // current offset in relation to back end
 
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -238,4 +249,69 @@ public class InitialSetup extends Activity {
 		getMenuInflater().inflate(R.menu.activity_initial_setup, menu);
 		return true;
 	}
+
+    private void addImages(){
+        WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int dim = Math.min(size.x, size.y);
+        int numPics = (int)Math.ceil(size.x*2/(float)dim);
+
+
+
+        Iterator<Pair> iter ;  // TODO obtain collection of "Pair"s that contain a list of addresses, bitmaps, and SoundRecords
+
+
+        Bitmap image1;
+        while (iter.hasNext()){
+            List<Pair> list = new ArrayList<Pair>();
+            for(int i = 0; i < numPics; i++){
+                if(iter.hasNext()){
+                    list.add(iter.next());
+                }
+            }
+            addLine(list, size.x);
+        }
+    }
+
+    private void addLine(List<Pair> imageList, int width){
+        LinearLayout buttonLayout = new LinearLayout(this);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        final int widthScale = width / imageList.size();
+        count = 0;
+
+        for(Pair imagePair : imageList){
+            Bitmap image = imagePair.image;
+            int posX = (count++%10 * widthScale);
+            double ratio = (double)Math.max(image.getHeight(), image.getWidth())/(double)widthScale;
+            double scaledWidth = image.getWidth()/ratio;
+            double scaledHeight = image.getHeight()/ratio;
+            ImageView pic = new ImageView(this);
+            pic.setImageBitmap(image);
+            pic.setMaxHeight((int) scaledHeight);
+            pic.setMaxHeight((int)scaledWidth);
+            pic.setPadding(5, 5, 5, 5);
+            pic.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // TODO open up picture
+                }
+            });
+            buttonLayout.addView(pic);
+        }
+    }
+}
+
+class Pair{
+    String address;
+    Bitmap image;
+    List<SoundRecord> records;
+
+    protected Pair(String ad, Bitmap image, List<SoundRecord> sr){
+        address = ad;
+        this.image = image;
+        records = sr;
+    }
+
 }
