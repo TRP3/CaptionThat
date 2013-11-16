@@ -1,19 +1,12 @@
 package hacktx.captionthat;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -21,15 +14,9 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.Window;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPost;
@@ -38,6 +25,9 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
 
 public class InitialSetup extends Activity {
 	private static final String PREFERENCES = "preferences";
@@ -167,14 +157,17 @@ public class InitialSetup extends Activity {
 			bitmap = null;
 		}
 		resizeBitmap();
-        try {
+/*        try {
             uploadNewImageBitmap(bitmap);
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        mImageView.setImageBitmap(bitmap);
+        } */
+  //      mImageView.setImageBitmap(bitmap);
+        Intent i = new Intent(getApplicationContext(), Draw.class);
+        i.putExtra("path", teamPicPath);
+        startActivity(i);
 	}
 
     // TODO: Move this to the class that adds sound to the image, and include the sound data.
