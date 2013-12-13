@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/CaptionThat.iml" filepath="$PROJECT_DIR$/CaptionThat.iml" />
       <module fileurl="file://$PROJECT_DIR$/CaptionThat/CaptionThat.iml" filepath="$PROJECT_DIR$/CaptionThat/CaptionThat.iml" />
       <module fileurl="file://$PROJECT_DIR$/CaptionThat/CaptionThat-CaptionThat.iml" filepath="$PROJECT_DIR$/CaptionThat/CaptionThat-CaptionThat.iml" />
       <module fileurl="file://$PROJECT_DIR$/CaptionThatProject.iml" filepath="$PROJECT_DIR$/CaptionThatProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../Users.iml" filepath="$PROJECT_DIR$/../../../Users.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../Users.iml" filepath="$PROJECT_DIR$/../../../Users.iml" />
     </modules>
   </component>
 </project>

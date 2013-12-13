@@ -2,16 +2,12 @@ package hacktx.captionthat;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,41 +42,20 @@ import android.widget.ProgressBar;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 
 public class InitialSetup extends Activity {
     private static final String PREFERENCES = "preferences";
     public static final String IMAGE_FILENAME = "team_pic.jpg";
-    private String teamName, teamPicPath, prevTeamPicPath;
+    private String teamName, picPath, prevTeamPicPath;
     private int teamNum;
     //image stuff
     private Uri mImageCaptureUri;
@@ -205,7 +180,7 @@ public class InitialSetup extends Activity {
                     startActivityForResult(Intent.createChooser(intent,
                             "Complete action using"), PICK_FROM_FILE);
                 } else { //default image
-                    teamPicPath = null;
+                    picPath = null;
                     bitmap = null;
                 }
             }
@@ -217,23 +192,23 @@ public class InitialSetup extends Activity {
         if (resultCode != RESULT_OK) return;
         if (requestCode == PICK_FROM_FILE) {
             mImageCaptureUri = data.getData();
-            teamPicPath = getRealPathFromURI(mImageCaptureUri); //from Gallery
-            if (teamPicPath == null)
-                teamPicPath = mImageCaptureUri.getPath(); //from File Manager
-            if (teamPicPath != null)
+            picPath = getRealPathFromURI(mImageCaptureUri); //from Gallery
+            if (picPath == null)
+                picPath = mImageCaptureUri.getPath(); //from File Manager
+            if (picPath != null)
                 bitmap 	= BitmapMemoryManagement
-                        .decodeBitmapFromFile(teamPicPath, this);
+                        .decodeBitmapFromFile(picPath, this);
         } else if (requestCode == PICK_FROM_CAMERA) {
-            teamPicPath	= mImageCaptureUri.getPath();
-            bitmap  = BitmapMemoryManagement.decodeBitmapFromFile(teamPicPath, this);
+            picPath = mImageCaptureUri.getPath();
+            bitmap  = BitmapMemoryManagement.decodeBitmapFromFile(picPath, this);
         }
-        else { //default image
-            teamPicPath = null;
+        else {
+            picPath = null;
             bitmap = null;
         }
         resizeBitmap();
         Intent i = new Intent(getApplicationContext(), Draw.class);
-        i.putExtra("path", teamPicPath);
+        i.putExtra("path", picPath);
         startActivity(i);
     }
 
@@ -300,11 +275,9 @@ public class InitialSetup extends Activity {
         LinearLayout sideBySideImages = new LinearLayout(this);
         sideBySideImages.setOrientation(LinearLayout.HORIZONTAL);
         final int widthScale = screenWidth / imageList.size();
-        int count = 0;
         for(Pair imagePair : imageList){
             Bitmap image = imagePair.image;
             if(image == null) continue;
-            int posX = (count++%NUM_IMAGES_PER_PAGE * widthScale);
             double ratio = (double)Math.max(image.getHeight(), image.getWidth())/(double)widthScale;
             double scaledWidth = image.getWidth()/ratio;
             double scaledHeight = image.getHeight()/ratio;
@@ -314,16 +287,15 @@ public class InitialSetup extends Activity {
             pic.setMaxWidth((int) scaledWidth);
             pic.setImageBitmap(image);
             pic.setPadding(5, 5, 5, 5);
-            pic.setOnClickListener(new MyLovelyOnClickListener(imagePair.id));
+            pic.setOnClickListener(new PicOnClickListener(imagePair.id));
             sideBySideImages.addView(pic);
         }
         ((LinearLayout)findViewById(R.id.homePage)).addView(sideBySideImages);
     }
 
-    public class MyLovelyOnClickListener implements View.OnClickListener
-    {
+    public class PicOnClickListener implements View.OnClickListener {
         int id;
-        public MyLovelyOnClickListener(int id) {
+        public PicOnClickListener(int id) {
             this.id = id;
         }
         @Override
@@ -347,6 +319,7 @@ public class InitialSetup extends Activity {
             return null;
         }
     }
+
     public JSONArray getPageOfImages() {
         String url = SERVER_URL + "/images.json?offset=" + numImagesRetrieved
                 + "&count=" +  NUM_IMAGES_PER_PAGE + "&start_time=" + lastTimestamp;
@@ -379,7 +352,7 @@ public class InitialSetup extends Activity {
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(httpResponse.getEntity().getContent(), "UTF-8"));
             StringBuilder builder = new StringBuilder();
-            for (String line = null; (line = reader.readLine()) != null;) {
+            for (String line = null; (line = reader.readLine()) != null; ) {
                 builder.append(line).append("\n");
             }
             JSONTokener tokener = new JSONTokener(builder.toString());
@@ -442,6 +415,7 @@ public class InitialSetup extends Activity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+
             if(image != null)
                 picArray = image.toString().getBytes();
 
@@ -468,28 +442,6 @@ public class InitialSetup extends Activity {
             i.putExtra("bool", true);
             startActivity(i);
         }
-    }
-
-    public JSONArray getPageOfImages() {
-        String testUrl = SERVER_URL + "/images.json?offset=0&count=10&start_time=2000000000";
-        try {
-            DefaultHttpClient httpClient = new DefaultHttpClient();
-            HttpGet httpGet = new HttpGet(testUrl);
-            HttpResponse httpResponse = httpClient.execute(httpGet);
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(httpResponse.getEntity().getContent(), "UTF-8"));
-            StringBuilder builder = new StringBuilder();
-            for (String line = null; (line = reader.readLine()) != null;) {
-                builder.append(line).append("\n");
-            }
-            JSONTokener tokener = new JSONTokener(builder.toString());
-            JSONArray finalResult = new JSONArray(tokener);
-            return finalResult;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
-        }
-        return null;
     }
 }
 
