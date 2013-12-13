@@ -4,6 +4,7 @@
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
         <option name="externalProjectPath" value="C:\Users" />
+        <option name="gradleHome" value="C:\Users\Andy\Dropbox\Android Apps\CaptionThat\gradle\" />
         <option name="useAutoImport" value="true" />
       </GradleProjectSettings>
     </option>

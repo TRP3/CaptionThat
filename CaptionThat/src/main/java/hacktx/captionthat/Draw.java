@@ -6,12 +6,14 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -22,6 +24,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -50,6 +53,7 @@ public class Draw extends Activity {
     private float startX, startY, endY, endX;
     List<SoundRecord> records = new ArrayList<SoundRecord>();
     Bitmap bitmap;
+    String bitPath;
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
@@ -60,7 +64,8 @@ public class Draw extends Activity {
         ((LinearLayout)findViewById(R.id.activityDraw)).addView(dv);
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            bitmap = BitmapMemoryManagement.decodeBitmapFromFile(extras.getString("path"), this);
+            bitPath = extras.getString("path");
+            bitmap = BitmapMemoryManagement.decodeBitmapFromFile(bitPath, this);
             Drawable d = new BitmapDrawable(getResources(), bitmap);
             dv.setBackground(d);
         }
@@ -112,6 +117,12 @@ public class Draw extends Activity {
             canvas.drawPath( circlePath,  circlePaint);
             canvas.drawRect(Math.min(startX, endX), Math.min(startY, endY), Math.max(startX, endX),
                             Math.max(startY, endY), mPaint);
+        }
+
+        @Override
+        protected void onConfigurationChanged(Configuration newConfig) {
+            super.onConfigurationChanged(newConfig);
+           // dv.setRotation(newConfig.orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT ? 0 : 90);
         }
 
         private static final float TOUCH_TOLERANCE = 4;
@@ -208,7 +219,11 @@ public class Draw extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_OK) return;
-
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
 
         if (requestCode == PICK_FROM_FILE) {
             mSoundCaptureUri = data.getData();
@@ -216,24 +231,20 @@ public class Draw extends Activity {
 
             if (soundPath == null)
                 soundPath = mSoundCaptureUri.getPath(); //from File Manager
-
-
-            if (soundPath != null) {
-                double minX = Math.min(startX, endX);
-                double minY = Math.min(startY, endY);
-                double maxX = Math.max(startX, endX);
-                double maxY = Math.max(startY, endY);
-                SoundRecord rec = new SoundRecord(minX, minY, maxX, maxY, soundPath);
-                records.add(rec);
+            else {
+                double minX = Math.min(startX, endX)/width;
+                double minY = Math.min(startY, endY)/height;
+                double maxX = Math.max(startX, endX)/width;
+                double maxY = Math.max(startY, endY)/height;
+                records.add(new SoundRecord(minX, minY, maxX, maxY, soundPath));
             }
         } else if (requestCode == PICK_FROM_RECORDER) {
             soundPath = mSoundCaptureUri.getPath();
-            // Todo SoundPoool test
         }
         else { //default sound
             soundPath = null;
         }
-
+        System.out.println("Image file:  " + soundPath.toString());
     }
 
     @SuppressWarnings("deprecation")
@@ -257,18 +268,38 @@ public class Draw extends Activity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.done:
-                System.out.println("Pressed done");
-                new RetreiveFeedTask(bitmap, records).execute();
+                new RetrieveFeedTask(bitmap, records).execute();
+            case R.id.Test:
+                Intent i = new Intent(getApplicationContext(), FullscreenActivity.class);
+                i.putExtra("image", bitPath);
+                int size = records.size();
+                double[] minX = new double[size];
+                double[] minY= new double[size];
+                double[] maxX = new double[size];
+                double[] maxY = new double[size];
+                String[] path = new String[size];
+                for (int j = size-1; j>=0; --j) {
+                    minX[j] = records.get(j).minX;
+                    minY[j] = records.get(j).minY;
+                    maxX[j] = records.get(j).maxX;
+                    maxY[j] = records.get(j).maxY;
+                    path[j] = records.get(j).path;
+                }
+                i.putExtra("minX", minX);
+                i.putExtra("minY", minY);
+                i.putExtra("maxX", maxX);
+                i.putExtra("maxY", maxY);
+                i.putExtra("path", path);
+                i.putExtra("bool", false);
+                startActivity(i);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
-
-
 }
 
-class RetreiveFeedTask extends AsyncTask<String, Void, Integer> {
+class RetrieveFeedTask extends AsyncTask<String, Void, Integer> {
 
     private Exception exception;
     Bitmap bitmap;
@@ -290,7 +321,7 @@ class RetreiveFeedTask extends AsyncTask<String, Void, Integer> {
         // TODO: do something with the feed
     }
 
-    public RetreiveFeedTask (Bitmap b, List<SoundRecord> r){
+    public RetrieveFeedTask(Bitmap b, List<SoundRecord> r){
         bitmap = b;
         recs = r;
     }
@@ -298,7 +329,6 @@ class RetreiveFeedTask extends AsyncTask<String, Void, Integer> {
     public Boolean uploadNewImageBitmap() throws JSONException, IOException {
         Boolean success = true;
         JSONObject obj = DataConversion.constructPictureJson(bitmap);
-        int i = 0;
         for(SoundRecord rec : recs){
             JSONObject obje = new JSONObject();
             obje.put("sound", DataConversion.constructAudioString(rec.path));
@@ -306,40 +336,27 @@ class RetreiveFeedTask extends AsyncTask<String, Void, Integer> {
             obje.put("ty", rec.minY);
             obje.put("bx", rec.maxX);
             obje.put("by", rec.maxY);
-            obj.accumulate("sounds", obje);
-            System.out.println("JSON Record object: " + i + " :  " + obje.toString());
-            int len = obj.toString().length();
-            for(int im = 0; im < len; im += 100)
-                System.out.println("JSON Complete object: " + i+im + " :  " + obj.toString().substring(im, Math.min(im+100, len)));
+            obj.accumulate("sounds_attributes", obje);
         }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("image", obj);
         DefaultHttpClient httpClient = new DefaultHttpClient();
-        System.out.println("Step 1 WHOO HOO!!! BANANA");
         System.out.println("obj: " + obj.toString());
-        System.out.println("Step 2 WHOO HOO!!! BANANA");
         ResponseHandler<String> responseHandler = new BasicResponseHandler();
-        System.out.println("Step 3 WHOO HOO!!! BANANA");
-        final String NEW_IMAGE_URL = "http://captionthat.herokuapp.com/images.json"; // TODO: Make this a public variable.
-        System.out.println("Step 4 WHOO HOO!!! BANANA");
+        final String NEW_IMAGE_URL = "http://captionthat2.herokuapp.com/images.json"; // TODO: Make this a public variable.
         HttpPost postMethod = new HttpPost(NEW_IMAGE_URL);
-        System.out.println("Step 5 WHOO HOO!!! BANANA");
-        postMethod.setEntity(new StringEntity(obj.toString()));
-        System.out.println("Step 6 WHOO HOO!!! BANANA");
+        postMethod.setEntity(new StringEntity(jsonObject.toString()));
         postMethod.setHeader("Accept", "application/json");
-        System.out.println("Step 7 WHOO HOO!!! BANANA");
         postMethod.setHeader("Content-type", "application/json");
-        System.out.println("Step 8 WHOO HOO!!! BANANA");
         postMethod.setHeader("Data-type", "json");
-        System.out.println("Step 9 WHOO HOO!!! BANANA");
         try{
-            System.out.println("Step 10 WHOO HOO!!! BANANA");
             httpClient.execute(postMethod, responseHandler);
-            System.out.println("Step 11 WHOO HOO!!! BANANA");
-        } catch (org.apache.http.client.HttpResponseException error){
-            Log.d("Uploader Class Error", "Error code: " + error.getStatusCode());
+        } catch (Exception error){
+            Log.d("Uploader Class Error", "Error code: " + error.toString());
             Log.d("Uploader Class Error", "Error message: " + error.getMessage());
             success = false;
         }
-        //Log.d("server resposne", response);
+        //Log.d("server response", response);
         System.out.println("Success:  " + success);
         return success;
     }

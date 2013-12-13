@@ -3,4 +3,7 @@
     <item android:id="@+id/done"
         android:title="Done"
         android:showAsAction="ifRoom"/>
+    <item android:id="@+id/Test"
+        android:title="Review Picture"
+        android:showAsAction="ifRoom"/>
 </menu>
