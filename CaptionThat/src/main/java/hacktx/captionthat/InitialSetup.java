@@ -1,5 +1,20 @@
 package hacktx.captionthat;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -31,6 +46,18 @@ import android.widget.ProgressBar;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,6 +93,7 @@ public class InitialSetup extends Activity {
     private long lastTimestamp;
     private static final int NUM_IMAGES_PER_PAGE = 10;
     private static final String SERVER_URL = "http://captionthat2.herokuapp.com";
+
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
@@ -79,12 +107,14 @@ public class InitialSetup extends Activity {
                 return super.onOptionsItemSelected(item);
         }
     }
+
     private void refresh() {
         setContentView(R.layout.home_screen);
         lastTimestamp = System.currentTimeMillis() / 1000;
         numImagesRetrieved = 0;
         new LoadImagesTask().execute();
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,6 +144,7 @@ public class InitialSetup extends Activity {
                 return null;
             }
         }
+
         protected void onPostExecute(LinkedList<Pair> imagePairs) {
             hideProgressSpinner();
             try {
@@ -123,6 +154,7 @@ public class InitialSetup extends Activity {
                 System.out.println(e);
             }
         }
+
         private void showProgressSpinner() {
             progressBar = new ProgressBar(InitialSetup.this);
             ((LinearLayout)findViewById(R.id.homePage)).addView(progressBar);
@@ -131,6 +163,7 @@ public class InitialSetup extends Activity {
             ((LinearLayout)findViewById(R.id.homePage)).removeView(progressBar);
         }
     }
+
     /**
      * Tell the OS to expect orientation change.
      */
@@ -140,6 +173,7 @@ public class InitialSetup extends Activity {
         refresh();
         Log.d("InitialSetup", "Configuration changed.");
     }
+
     private void browseForPicture() {
         final String [] items = new String [] {"New Image", "Existing Image", "Default Image"};
         ArrayAdapter<String> adapter = new ArrayAdapter<String> (this,
@@ -201,7 +235,6 @@ public class InitialSetup extends Activity {
         Intent i = new Intent(getApplicationContext(), Draw.class);
         i.putExtra("path", teamPicPath);
         startActivity(i);
-
     }
 
     @SuppressWarnings("deprecation")
@@ -235,6 +268,7 @@ public class InitialSetup extends Activity {
         getMenuInflater().inflate(R.menu.activity_initial_setup, menu);
         return true;
     }
+
     private void addImages(LinkedList<Pair> imagePairs) throws JSONException {
         WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
@@ -242,6 +276,7 @@ public class InitialSetup extends Activity {
         display.getSize(size);
         int dim = Math.min(size.x, size.y);
         int numPics = (int)Math.ceil(size.x*2/(float)dim);
+
         for(int i = 0; i < imagePairs.size(); i += numPics) {
             List<Pair> list = new ArrayList<Pair>();
             for(int j = 0; j < numPics && i + j < imagePairs.size(); j++){
@@ -434,10 +469,34 @@ public class InitialSetup extends Activity {
             startActivity(i);
         }
     }
+
+    public JSONArray getPageOfImages() {
+        String testUrl = SERVER_URL + "/images.json?offset=0&count=10&start_time=2000000000";
+        try {
+            DefaultHttpClient httpClient = new DefaultHttpClient();
+            HttpGet httpGet = new HttpGet(testUrl);
+            HttpResponse httpResponse = httpClient.execute(httpGet);
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(httpResponse.getEntity().getContent(), "UTF-8"));
+            StringBuilder builder = new StringBuilder();
+            for (String line = null; (line = reader.readLine()) != null;) {
+                builder.append(line).append("\n");
+            }
+            JSONTokener tokener = new JSONTokener(builder.toString());
+            JSONArray finalResult = new JSONArray(tokener);
+            return finalResult;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e);
+        }
+        return null;
+    }
 }
+
 class Pair{
     int id;
     Bitmap image;
+
     protected Pair(int id, Bitmap image){
         this.id = id;
         this.image = image;
